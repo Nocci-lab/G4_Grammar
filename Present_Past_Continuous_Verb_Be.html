@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>現在進行形・過去進行形の be動詞</title>
+
+<style>
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic", sans-serif;
+    background: #f5f7fa;
+    padding: 20px;
+    font-size: 16px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  .question {
+    background: white;
+    padding: 18px;
+    margin: 16px auto;
+    border-radius: 12px;
+    max-width: 760px;
+  }
+
+  .jp {
+    margin-bottom: 8px;
+  }
+
+  .en {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .blank {
+    display: inline-block;
+    min-width: 80px;
+    padding: 2px 6px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+  }
+
+  .choices button {
+    margin: 6px;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .choices-print {
+    display: none;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+
+  .print-choice {
+    display: inline-block;
+    margin-right: 20px;
+  }
+
+  .selected {
+    outline: 3px solid #333;
+  }
+
+  .correct {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .wrong {
+    background: #f44336;
+    color: white;
+  }
+
+  .answer {
+    margin-top: 8px;
+    font-weight: bold;
+  }
+
+  .audio-btn {
+    margin-top: 10px;
+    display: none;
+    font-size: 15px;
+  }
+
+  .controls {
+    text-align: center;
+    margin-top: 24px;
+  }
+
+  /* 紙吹雪 */
+  .confetti {
+    position: fixed;
+    top: -10px;
+    width: 10px;
+    height: 10px;
+    animation: fall 2.5s linear forwards;
+    z-index: 9999;
+  }
+
+  @keyframes fall {
+    to {
+      transform: translateY(110vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @media print {
+    .choices,
+    .controls,
+    .answer,
+    .audio-btn {
+      display: none !important;
+    }
+
+    .choices-print {
+      display: block;
+    }
+
+    body {
+      background: white;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>現在進行形・過去進行形の be動詞</h1>
+
+<div id="quiz"></div>
+
+<div class="controls">
+  <button onclick="checkAnswers()">丸つけ</button>
+  <button onclick="restartGame()">もう一度</button>
+  <button onclick="window.print()">PDF</button>
+</div>
+
+<script>
+const choices = ["am", "is", "are", "was", "were"];
+
+const questions = [
+  { jp: "私はテレビを見ています。", en: "I ( ) watching TV.", answer: "am" },
+  { jp: "私は音楽を聴いていました。", en: "I ( ) listening to music.", answer: "was" },
+  { jp: "メアリーは日本語を勉強しています。", en: "Mary ( ) studying Japanese.", answer: "is" },
+  { jp: "トムは算数を勉強していました。", en: "Tom ( ) studying math.", answer: "was" },
+  { jp: "私たちはお昼ご飯を食べています。", en: "We ( ) having lunch.", answer: "are" },
+  { jp: "彼らはフランス語を話していました。", en: "They ( ) speaking French.", answer: "were" }
+];
+
+const quiz = document.getElementById("quiz");
+
+function buildQuiz() {
+  quiz.innerHTML = "";
+  document.querySelectorAll(".confetti").forEach(c => c.remove());
+
+  questions.forEach((q, index) => {
+    const div = document.createElement("div");
+    div.className = "question";
+
+    div.innerHTML = `
+      <div class="jp">${index + 1}) ${q.jp}</div>
+      <div class="en">${q.en.replace("( )", "( <span class='blank'></span> )")}</div>
+
+      <div class="choices">
+        ${choices.map(c => `<button onclick="select(this, '${c}')">${c}</button>`).join("")}
+      </div>
+
+      <div class="choices-print">
+        ${choices.map(c => `<span class="print-choice">${c}</span>`).join("")}
+      </div>
+
+      <div class="answer" data-answer="${q.answer}"></div>
+      <button class="audio-btn" onclick="playSentence(this)">🔊 音声を聞く</button>
+    `;
+
+    quiz.appendChild(div);
+  });
+}
+
+function select(btn, word) {
+  const q = btn.closest(".question");
+  q.querySelectorAll(".choices button").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  q.querySelector(".blank").textContent = word;
+}
+
+function checkAnswers() {
+  let allCorrect = true;
+
+  document.querySelectorAll(".question").forEach(q => {
+    const selected = q.querySelector(".selected");
+    const blank = q.querySelector(".blank");
+    const answerBox = q.querySelector(".answer");
+    const audioBtn = q.querySelector(".audio-btn");
+    const correct = answerBox.dataset.answer;
+
+    audioBtn.style.display = "inline-block";
+
+    if (!selected || blank.textContent !== correct) {
+      allCorrect = false;
+      blank.textContent = correct;
+      if (selected) selected.classList.add("wrong");
+      answerBox.textContent = `× 正解：${correct}`;
+      return;
+    }
+
+    selected.classList.add("correct");
+    answerBox.textContent = "○ 正解";
+  });
+
+  if (allCorrect) {
+    launchConfetti();
+  }
+}
+
+function restartGame() {
+  buildQuiz();
+}
+
+function launchConfetti() {
+  for (let i = 0; i < 60; i++) {
+    const confetti = document.createElement("div");
+    confetti.className = "confetti";
+    confetti.style.left = Math.random() * 100 + "vw";
+    confetti.style.backgroundColor =
+      ["#ff5252", "#ffeb3b", "#4caf50", "#2196f3"][Math.floor(Math.random() * 4)];
+    confetti.style.animationDuration = (Math.random() * 1.5 + 2) + "s";
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 3000);
+  }
+}
+
+function playSentence(btn) {
+  const q = btn.closest(".question");
+  const text = q.querySelector(".en").innerText;
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+
+  const voices = speechSynthesis.getVoices();
+  const voice = voices.find(v => v.lang === "en-US");
+  if (voice) utter.voice = voice;
+
+  speechSynthesis.speak(utter);
+}
+
+buildQuiz();
+</script>
+
+</body>
+</html>

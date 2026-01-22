@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Present & Past Continuous Game｜現在進行形・過去進行形 並べ替えゲーム</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic","Meiryo",sans-serif;
+  background:#f5f5f5;
+  padding:20px;
+  font-size:18px;
+}
+
+/* ===== ヘッダー ===== */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:10px;
+}
+.header-left h1{
+  font-size:22px;
+  margin:0;
+}
+.header-left h2{
+  font-size:16px;
+  font-weight:normal;
+  margin:4px 0 0 0;
+}
+.name{
+  font-size:14px;
+  white-space:nowrap;
+}
+
+/* ===== モード切替 ===== */
+.mode button{
+  padding:8px 14px;
+  margin-right:6px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+.active{background:#4cafef;color:#fff;}
+
+/* ===== カード ===== */
+.card{
+  background:#fff;
+  padding:16px;
+  margin-bottom:18px;
+  border-radius:10px;
+}
+.jp{margin-bottom:6px;font-weight:500;}
+.mark{margin-left:6px;font-size:20px;}
+
+.words,.answer{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  min-height:44px;
+}
+.word{
+  padding:8px 12px;
+  border:1px solid #999;
+  border-radius:8px;
+  cursor:pointer;
+  background:#fff;
+}
+
+.sentence{
+  margin-top:8px;
+  font-size:20px;
+  font-weight:500;
+}
+
+.slash{margin-top:6px;}
+.answer-line{
+  margin-top:14px;
+  width:100%;
+  height:28px;
+  border-bottom:2px solid #000;
+}
+
+/* ===== 下部 ===== */
+.controls{margin-top:10px;}
+.controls button{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+.print{background:#777;color:#fff;}
+
+/* ===== 印刷用調整 ===== */
+@media print{
+  /* 画面操作系は非表示 */
+  .mode,.controls,.words,.answer,.sentence,.mark{display:none;}
+
+  /* 日本語タイトルは印刷では消す */
+  .jp-title{display:none;}
+
+  /* 余白を詰める */
+  body{
+    background:#fff;
+    padding:12px;
+    font-size:16px;
+  }
+  .card{
+    padding:12px;
+    margin-bottom:12px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ===== ヘッダー ===== -->
+<div class="header">
+  <div class="header-left">
+    <h1>Present & Past Continuous Game</h1>
+    <h2 class="jp-title">現在進行形・過去進行形 並べ替えゲーム</h2>
+  </div>
+  <div class="name">Name: ____________________</div>
+</div>
+
+<div class="mode">
+  <button id="btnGame" class="active" onclick="setMode('game')">🎮 Game</button>
+  <button id="btnPrint" onclick="setMode('print')">🖨 Print</button>
+</div>
+
+<div id="game"></div>
+
+<div class="controls">
+  <button class="print" onclick="window.print()">印刷</button>
+</div>
+
+<script>
+const QUESTIONS = [
+ {jp:"彼は今、宿題をしています。", en:"He is doing his homework now."},
+ {jp:"彼女はそのとき、ピアノをひいていました。", en:"She was playing the piano then."},
+ {jp:"あなたはスーパーに行くところですか？", en:"Are you going to the supermarket?"},
+ {jp:"そのとき、あなたはおふろに入っていましたか？", en:"Were you taking a bath then?"},
+ {jp:"そのとき、私はテレビを見ていませんでした。", en:"I wasn't watching TV then."},
+ {jp:"そのとき、あなたはどこで勉強していましたか？", en:"Where were you studying at that time?"},
+ {jp:"今朝、彼女はなぜ泣いていたのですか？", en:"Why was she crying this morning?"}
+];
+
+let MODE="game";
+const game=document.getElementById("game");
+
+function splitWords(s){
+  return s.replace(/([?.])/g," $1").split(" ");
+}
+function shuffleStrong(a){
+  return a.map(v=>[Math.random(),v])
+          .sort((x,y)=>x[0]-y[0])
+          .map(v=>v[1]);
+}
+function formatWord(w){
+  if (w === "I" || w === "TV") return w;
+  return w.toLowerCase();
+}
+function updateCapital(ans){
+  [...ans.children].forEach((el,i)=>{
+    let t=el.textContent.toLowerCase();
+    if(i===0||t==="i"){
+      el.textContent=t.charAt(0).toUpperCase()+t.slice(1);
+    }else{
+      el.textContent=t;
+    }
+  });
+}
+
+function setMode(m){
+  MODE=m;
+  document.getElementById("btnGame").classList.toggle("active",m==="game");
+  document.getElementById("btnPrint").classList.toggle("active",m==="print");
+  render();
+}
+
+function render(){
+  game.innerHTML="";
+
+  QUESTIONS.forEach((q,i)=>{
+    const card=document.createElement("div");
+    card.className="card";
+
+    const jp=document.createElement("div");
+    jp.className="jp";
+    jp.textContent=`${i+1}) ${q.jp}`;
+
+    const mark=document.createElement("span");
+    mark.className="mark";
+    jp.appendChild(mark);
+    card.appendChild(jp);
+
+    if(MODE==="print"){
+      const slash=document.createElement("div");
+      slash.className="slash";
+      slash.textContent=shuffleStrong(splitWords(q.en)).join(" / ");
+      card.appendChild(slash);
+
+      const line=document.createElement("div");
+      line.className="answer-line";
+      card.appendChild(line);
+    }else{
+      const words=document.createElement("div");
+      words.className="words";
+      const answer=document.createElement("div");
+      answer.className="answer";
+
+      const correct=splitWords(q.en);
+      shuffleStrong(correct.map(formatWord)).forEach(w=>{
+        const b=document.createElement("div");
+        b.className="word";
+        b.textContent=w;
+        b.onclick=()=>{
+          if(b.parentElement===words){
+            answer.appendChild(b);
+          }else{
+            words.appendChild(b);
+          }
+          updateCapital(answer);
+          checkOne(card,answer,correct,q.en,mark);
+        };
+        words.appendChild(b);
+      });
+
+      card.appendChild(words);
+      card.appendChild(answer);
+    }
+
+    game.appendChild(card);
+  });
+}
+
+function checkOne(card,answer,correct,full,mark){
+  const user=[...answer.children].map(x=>x.textContent).join(" ");
+  const right=correct.join(" ");
+
+  if(user.toLowerCase()===right.toLowerCase()){
+    mark.textContent="✅";
+
+    const s=document.createElement("div");
+    s.className="sentence";
+    s.textContent=full;
+    card.appendChild(s);
+
+    card.querySelector(".words")?.remove();
+    card.querySelector(".answer")?.remove();
+  }else if(answer.children.length===correct.length){
+    mark.textContent="✖️";
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>
