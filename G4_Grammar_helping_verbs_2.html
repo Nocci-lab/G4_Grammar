@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>英検4級 助動詞ゲーム</title>
+
+<style>
+body {
+  font-family: "Hiragino Maru Gothic ProN","Hiragino Maru Gothic",Arial,sans-serif;
+  background:#f4f8ff;
+  padding:20px;
+  font-size:32px;
+}
+
+h1 {
+  text-align:center;
+  font-size:44px;
+}
+
+.question {
+  background:white;
+  padding:28px;
+  margin-bottom:28px;
+  border-radius:20px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
+
+.jp {
+  font-weight:bold;
+  margin-bottom:16px;
+}
+
+.en {
+  margin-bottom:16px;
+}
+
+label {
+  display:block;
+  margin:10px 0;
+  cursor:pointer;
+}
+
+.result {
+  font-size:36px;
+  margin-top:10px;
+}
+
+.readBtn {
+  display:none;
+  font-size:26px;
+  padding:10px 18px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+  background:#2196f3;
+  color:white;
+  cursor:pointer;
+}
+
+button {
+  font-size:28px;
+  padding:14px 24px;
+  margin:10px 6px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+}
+
+#checkBtn { background:#4caf50; color:white; }
+#shuffleBtn { background:#ff9800; color:white; }
+#speedBtn { background:#9c27b0; color:white; }
+
+canvas {
+  position:fixed;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>英検4級 助動詞ゲーム</h1>
+
+<div id="quiz"></div>
+
+<button id="checkBtn">✔ 答え合わせ</button>
+<button id="shuffleBtn">🔀 シャッフル</button>
+<button id="speedBtn">🐢 ゆっくり</button>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const baseQuestions = [
+ {jp:"私は速く走ることができます。",
+  en:"I (　　　　) run fast.",
+  choices:["can","will","must","should"], answer:"can"},
+
+ {jp:"明日は雨でしょう。",
+  en:"It (　　　　) be rainy tomorrow.",
+  choices:["can","will","may","must"], answer:"will"},
+
+ {jp:"A：電話が鳴っています。B：私が出ます。",
+  en:"A: The phone is ringing.<br>B: (　　　　) answer it.",
+  choices:["I'm","I'll","I'd","I've"], answer:"I'll"},
+
+ {jp:"あなたのパスポートを見てもいいですか？",
+  en:"(　　　　) I see your passport?",
+  choices:["Must","May","Will","Should"], answer:"May"},
+
+ {jp:"私は今日6時に家にいなければなりません。",
+  en:"I (　　　　) be home at six today.",
+  choices:["can","may","must","will"], answer:"must"},
+
+ {jp:"荷物を持ちましょうか？",
+  en:"(　　　　) I carry your baggage?",
+  choices:["Will","Must","Shall","May"], answer:"Shall"},
+
+ {jp:"あなたはこの映画を見るべきです。",
+  en:"You (　　　　) watch this movie.",
+  choices:["can","must","should","will"], answer:"should"}
+];
+
+let questions = [];
+let slowMode = false;
+
+const shuffle = arr => [...arr].sort(()=>Math.random()-0.5);
+
+function buildQuiz(){
+  quiz.innerHTML="";
+  questions.forEach((q,i)=>{
+    q.selected="";
+    q.done=false;
+    q.shuffled=shuffle(q.choices);
+
+    const div=document.createElement("div");
+    div.className="question";
+    div.innerHTML=`
+      <div class="jp">Q${i+1}. ${q.jp}</div>
+      <div class="en" id="en${i}">${q.en}</div>
+      ${q.shuffled.map(c=>`
+        <label>
+          <input type="radio" name="q${i}" value="${c}">
+          ${c}
+        </label>`).join("")}
+      <div class="result" id="r${i}"></div>
+      <button class="readBtn" id="read${i}">🔊 この文を読む</button>
+    `;
+    quiz.appendChild(div);
+
+    div.querySelectorAll(`input[name="q${i}"]`).forEach(r=>{
+      r.onchange=()=>{
+        q.selected=r.value;
+        document.getElementById(`en${i}`).innerHTML =
+          q.en.replace("　　　　", q.selected);
+      };
+    });
+
+    document.getElementById(`read${i}`).onclick=()=>{
+      speakSentence(i);
+    };
+  });
+}
+
+function shuffleAll(){
+  questions = shuffle(baseQuestions.map(q=>({...q})));
+  buildQuiz();
+}
+
+shuffleAll();
+
+checkBtn.onclick=()=>{
+  let correct=0;
+  questions.forEach((q,i)=>{
+    const r=document.getElementById(`r${i}`);
+    const en=document.getElementById(`en${i}`);
+    const readBtn=document.getElementById(`read${i}`);
+
+    if(!q.selected){
+      r.textContent="△ えらんでね";
+      return;
+    }
+
+    if(q.selected===q.answer){
+      r.textContent="⭕ 正解！";
+      en.innerHTML = q.en.replace("(　　　　)", q.answer)
+                         .replace("　　　　", q.answer);
+      q.done=true;
+      readBtn.style.display="inline-block";
+      correct++;
+    }else{
+      r.textContent="❌ まちがい";
+    }
+  });
+
+  if(correct===questions.length){
+    startConfetti();
+    setTimeout(stopConfetti,5000);
+  }
+};
+
+function speakSentence(i){
+  const q=questions[i];
+  if(!q.done) return;
+
+  const text = q.en.replace("(　　　　)",q.answer)
+                   .replace("　　　　",q.answer)
+                   .replace(/<br>/g," ");
+
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US";
+  u.rate = slowMode ? 0.6 : 0.9;
+  speechSynthesis.speak(u);
+}
+
+speedBtn.onclick=()=>{
+  slowMode=!slowMode;
+  speedBtn.textContent = slowMode ? "🚀 ふつう" : "🐢 ゆっくり";
+};
+
+shuffleBtn.onclick=shuffleAll;
+
+/* 紙吹雪 */
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+let confetti=[],anim;
+
+function startConfetti(){
+  confetti=Array.from({length:200},()=>({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    r:Math.random()*6+4,
+    d:Math.random()*5+2
+  }));
+  anim=requestAnimationFrame(draw);
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  confetti.forEach(c=>{
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${Math.random()*360},100%,60%)`;
+    ctx.fill();
+    c.y+=c.d;
+    if(c.y>canvas.height) c.y=0;
+  });
+  anim=requestAnimationFrame(draw);
+}
+
+function stopConfetti(){
+  cancelAnimationFrame(anim);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>

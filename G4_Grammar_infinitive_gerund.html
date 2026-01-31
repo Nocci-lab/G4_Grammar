@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>to 不定詞？動名詞？</title>
+
+<style>
+/* ===== 画面用 ===== */
+body{
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic",Arial,sans-serif;
+  background:#f4f8ff;
+  padding:20px;
+  font-size:30px;
+}
+
+h1{
+  text-align:center;
+  font-size:44px;
+  margin-bottom:8px;
+}
+
+.subtitle{
+  text-align:center;
+  font-size:26px;
+  margin-bottom:16px;
+}
+
+.controls{
+  text-align:center;
+  margin-bottom:16px;
+}
+
+button{
+  font-size:26px;
+  padding:12px 22px;
+  border-radius:16px;
+  border:none;
+  cursor:pointer;
+}
+
+#shuffleBtn{
+  background:#ff9800;
+  color:white;
+  margin-right:10px;
+}
+
+#pdfBtn{
+  background:#607d8b;
+  color:white;
+}
+
+.question{
+  background:white;
+  padding:22px;
+  margin-bottom:22px;
+  border-radius:20px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
+
+.en{
+  font-size:34px;
+  margin-bottom:4px;
+}
+
+.jp{
+  font-size:24px;
+  margin-bottom:10px;
+  color:#333;
+}
+
+.blank{
+  display:inline-block;
+  min-width:140px;
+  text-align:center;
+}
+
+.choices{
+  max-width:420px;
+}
+
+.choices button{
+  display:block;
+  width:100%;
+  text-align:left;
+  font-size:26px;
+  padding:10px 16px;
+  margin:6px 0;
+  border-radius:14px;
+  border:3px solid #2196f3;
+  background:white;
+}
+
+.choices button.selected{
+  background:#e3f2fd;
+}
+
+.result{
+  font-size:32px;
+  margin-top:8px;
+}
+
+#checkBtn{
+  display:block;
+  margin:24px auto;
+  background:#4caf50;
+  color:white;
+}
+
+/* ===== 印刷・PDF用 ===== */
+@media print{
+  @page{
+    size: A4;
+    margin: 12mm;
+  }
+
+  body{
+    background:white;
+    font-size:13pt;
+    padding:0;
+  }
+
+  h1{
+    font-size:18pt;
+    margin-bottom:4pt;
+  }
+
+  .subtitle{
+    font-size:12pt;
+    margin-bottom:8pt;
+  }
+
+  .controls,
+  #checkBtn,
+  .result{
+    display:none;
+  }
+
+  .question{
+    box-shadow:none;
+    border:1px solid #000;
+    padding:10pt;
+    margin-bottom:8pt;
+  }
+
+  .en{
+    font-size:13pt;
+    margin-bottom:2pt;
+  }
+
+  .jp{
+    font-size:11pt;
+    margin-bottom:4pt;
+  }
+
+  .blank{
+    min-width:220px;
+  }
+
+  .choices button{
+    border:none;
+    background:none;
+    padding:0;
+    margin:2pt 0;
+    font-size:12pt;
+  }
+}
+
+/* 紙吹雪 */
+canvas{
+  position:fixed;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>不定詞 (to ~) かな？ 動名詞 (~ing) かな？</h1>
+<div class="subtitle">
+(　　 ) に入る形をえらぼう！
+</div>
+
+<div class="controls">
+  <button id="shuffleBtn">🔀 シャッフル</button>
+  <button id="pdfBtn">📄 PDFにする</button>
+</div>
+
+<div id="quiz"></div>
+
+<button id="checkBtn">✔ 答え合わせ</button>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const baseQuestions = [
+ {
+  en:"I want (       ) a new dress.",
+  jp:"私は新しいドレスを買いたいです。",
+  insert:["to buy","buying","to buy / buying"],
+  options:["A. to buy","B. buying","C. to buy / buying"],
+  answer:0
+ },
+ {
+  en:"I finished (       ) my homework.",
+  jp:"私は宿題を終えました。",
+  insert:["to do","doing","to do / doing"],
+  options:["A. to do","B. doing","C. to do / doing"],
+  answer:1
+ },
+ {
+  en:"It started (       ).",
+  jp:"雨が降り始めました。",
+  insert:["to rain","raining","to rain / raining"],
+  options:["A. to rain","B. raining","C. to rain / raining"],
+  answer:2
+ },
+ {
+  en:"He decided (       ) to Australia next year.",
+  jp:"彼は来年オーストラリアへ行くことを決めました。",
+  insert:["to go","going","to go / going"],
+  options:["A. to go","B. going","C. to go / going"],
+  answer:0
+ },
+ {
+  en:"It stopped (       ).",
+  jp:"雨がやみました。",
+  insert:["to rain","raining","to rain / raining"],
+  options:["A. to rain","B. raining","C. to rain / raining"],
+  answer:1
+ },
+ {
+  en:"I hope (       ) you again soon.",
+  jp:"またすぐにあなたに会えることを願っています。",
+  insert:["to see","seeing","to see / seeing"],
+  options:["A. to see","B. seeing","C. to see / seeing"],
+  answer:0
+ },
+ {
+  en:"He likes (       ) to music.",
+  jp:"彼は音楽を聴くのが好きです。",
+  insert:["to listen","listening","to listen / listening"],
+  options:["A. to listen","B. listening","C. to listen / listening"],
+  answer:2
+ },
+ {
+  en:"We enjoyed (       ) basketball yesterday.",
+  jp:"私たちは昨日バスケットボールを楽しみました。",
+  insert:["to play","playing","to play / playing"],
+  options:["A. to play","B. playing","C. to play / playing"],
+  answer:1
+ }
+];
+
+const quiz = document.getElementById("quiz");
+
+function shuffle(arr){
+  return [...arr].sort(()=>Math.random()-0.5);
+}
+
+function buildQuiz(){
+  quiz.innerHTML = "";
+
+  const questions = shuffle(
+    baseQuestions.map(q=>({
+      ...q,
+      selected:-1
+    }))
+  );
+
+  questions.forEach((q,i)=>{
+    const div=document.createElement("div");
+    div.className="question";
+
+    div.innerHTML=`
+      <div class="en">
+        Q${i+1}. ${q.en.replace("(       )","(<span class='blank'>　　　</span>)")}
+      </div>
+      <div class="jp">${q.jp}</div>
+      <div class="choices"></div>
+      <div class="result"></div>
+    `;
+    quiz.appendChild(div);
+
+    const enDiv = div.querySelector(".en");
+    const choiceDiv = div.querySelector(".choices");
+    const resDiv = div.querySelector(".result");
+
+    q.options.forEach((op,j)=>{
+      const btn=document.createElement("button");
+      btn.textContent=op;
+      btn.onclick=()=>{
+        choiceDiv.querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
+        btn.classList.add("selected");
+        q.selected=j;
+        enDiv.innerHTML =
+          `Q${i+1}. ` +
+          q.en.replace("(       )","(" + q.insert[j] + ")");
+      };
+      choiceDiv.appendChild(btn);
+    });
+
+    div._question = q;
+    div._result = resDiv;
+  });
+}
+
+buildQuiz();
+
+document.getElementById("shuffleBtn").onclick = buildQuiz;
+document.getElementById("pdfBtn").onclick = ()=>window.print();
+
+document.getElementById("checkBtn").onclick=()=>{
+  let allCorrect=true;
+
+  document.querySelectorAll(".question").forEach(div=>{
+    const q = div._question;
+    const res = div._result;
+
+    if(q.selected===-1){
+      res.textContent="△ えらんでね";
+      allCorrect=false;
+      return;
+    }
+
+    if(q.selected===q.answer){
+      res.textContent="⭕ 正解！";
+    }else{
+      res.textContent="❌ まちがい";
+      allCorrect=false;
+    }
+  });
+
+  if(allCorrect){
+    startConfetti();
+    setTimeout(stopConfetti,5000); // ★5秒
+  }
+};
+
+/* ===== 紙吹雪処理 ===== */
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+let confetti=[],anim;
+
+function startConfetti(){
+  confetti=Array.from({length:180},()=>({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    r:Math.random()*6+4,
+    d:Math.random()*5+2
+  }));
+  anim=requestAnimationFrame(draw);
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  confetti.forEach(c=>{
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${Math.random()*360},100%,60%)`;
+    ctx.fill();
+    c.y+=c.d;
+    if(c.y>canvas.height) c.y=0;
+  });
+  anim=requestAnimationFrame(draw);
+}
+
+function stopConfetti(){
+  cancelAnimationFrame(anim);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>

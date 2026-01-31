@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Look for 6 Helping Verbs</title>
+
+<style>
+body {
+  font-family: "Hiragino Maru Gothic ProN","Hiragino Maru Gothic",Arial,sans-serif;
+  background:#f4f8ff;
+  padding:20px;
+  text-align:center;
+}
+
+h1 {
+  font-size:44px;
+  margin-bottom:10px;
+}
+
+.subtitle {
+  font-size:26px;
+  margin-bottom:20px;
+}
+
+button {
+  font-size:26px;
+  padding:12px 22px;
+  margin-bottom:25px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+  background:#ff9800;
+  color:white;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap:18px;
+  max-width:700px;
+  margin:0 auto;
+}
+
+.card {
+  background:white;
+  padding:20px;
+  font-size:34px;
+  border-radius:16px;
+  box-shadow:0 4px 6px rgba(0,0,0,0.15);
+  cursor:pointer;
+  user-select:none;
+}
+
+.card.correct {
+  background:#c8f7c5;
+  color:#1b5e20;
+}
+
+.card.wrong {
+  background:#ffe0e0;
+}
+
+.counter {
+  font-size:30px;
+  margin-top:20px;
+}
+
+canvas {
+  position:fixed;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Look for 6 Helping Verbs!</h1>
+<div class="subtitle">６つの助動詞をさがそう！</div>
+
+<button id="shuffleBtn">🔀 シャッフル</button>
+
+<div class="grid" id="grid"></div>
+
+<div class="counter" id="counter">0 / 6 found</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const helpingVerbs = ["can","will","may","must","shall","should"];
+
+const words = [
+  "can","will","may","must","shall","should",
+  "but","and","they","you","in","under","behind",
+  "come","walk"
+];
+
+const shuffle = arr => [...arr].sort(()=>Math.random()-0.5);
+
+const grid = document.getElementById("grid");
+const counter = document.getElementById("counter");
+
+let found = 0;
+
+function buildGame(){
+  grid.innerHTML = "";
+  found = 0;
+  counter.textContent = "0 / 6 found";
+
+  shuffle(words).forEach(word=>{
+    const div=document.createElement("div");
+    div.className="card";
+    div.textContent=word;
+
+    div.onclick=()=>{
+      if(div.classList.contains("correct")) return;
+
+      if(helpingVerbs.includes(word)){
+        div.classList.add("correct");
+        found++;
+        counter.textContent = `${found} / 6 found`;
+        if(found===6){
+          startConfetti();
+          setTimeout(stopConfetti,5000);
+        }
+      }else{
+        div.classList.add("wrong");
+        setTimeout(()=>div.classList.remove("wrong"),500);
+      }
+    };
+
+    grid.appendChild(div);
+  });
+}
+
+document.getElementById("shuffleBtn").onclick = buildGame;
+
+buildGame();
+
+/* ===== 紙吹雪 ===== */
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+let confetti=[],anim;
+
+function startConfetti(){
+  confetti=Array.from({length:180},()=>({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    r:Math.random()*6+4,
+    d:Math.random()*5+2
+  }));
+  anim=requestAnimationFrame(draw);
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  confetti.forEach(c=>{
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${Math.random()*360},100%,60%)`;
+    ctx.fill();
+    c.y+=c.d;
+    if(c.y>canvas.height) c.y=0;
+  });
+  anim=requestAnimationFrame(draw);
+}
+
+function stopConfetti(){
+  cancelAnimationFrame(anim);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>

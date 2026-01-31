@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>have to / be going to 並べ替え</title>
+
+<style>
+body{
+  font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic",Arial,sans-serif;
+  background:#f4f8ff;
+  padding:20px;
+  font-size:30px;
+}
+
+h1{
+  text-align:center;
+  font-size:42px;
+  margin-bottom:10px;
+}
+
+.subtitle{
+  text-align:center;
+  font-size:24px;
+  margin-bottom:20px;
+}
+
+.question{
+  background:white;
+  padding:24px;
+  margin-bottom:26px;
+  border-radius:18px;
+  box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
+
+.jp{
+  font-weight:bold;
+  margin-bottom:14px;
+}
+
+.answer-area{
+  min-height:60px;
+  border:3px dashed #4caf50;
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:14px;
+}
+
+.word-bank{
+  margin-bottom:10px;
+}
+
+.word-bank span{
+  display:inline-block;
+  background:#fff;
+  border:3px solid #2196f3; /* 青 */
+  border-radius:10px;
+  padding:8px 14px;
+  margin:6px;
+  cursor:pointer;
+}
+
+.answer-area span{
+  display:inline-block;
+  background:#e8f5e9;
+  border:3px solid #4caf50; /* 緑 */
+  border-radius:10px;
+  padding:8px 14px;
+  margin:6px;
+  cursor:pointer;
+}
+
+.result{
+  font-size:34px;
+  margin-top:10px;
+}
+
+.readBtn{
+  display:none;
+  margin-top:10px;
+  font-size:26px;
+  padding:10px 18px;
+  border-radius:12px;
+  border:none;
+  background:#2196f3;
+  color:white;
+  cursor:pointer;
+}
+
+button{
+  font-size:28px;
+  padding:14px 24px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+}
+
+#checkBtn{
+  display:block;
+  margin:20px auto;
+  background:#4caf50;
+  color:white;
+}
+
+#shuffleBtn{
+  display:block;
+  margin:0 auto 30px;
+  background:#ff9800;
+  color:white;
+}
+
+canvas{
+  position:fixed;
+  top:0;
+  left:0;
+  pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>have to / be going to</h1>
+<div class="subtitle">
+have to ～「〜しなければならない」<br>
+be going to ～「〜するつもりだ」
+</div>
+
+<button id="shuffleBtn">🔀 シャッフル</button>
+
+<div id="quiz"></div>
+
+<button id="checkBtn">✔ 答え合わせ</button>
+
+<canvas id="confetti"></canvas>
+
+<script>
+const baseQuestions = [
+ {
+  jp:"私はそこでテニスをするつもりです。",
+  answer:"I am going to play tennis there.",
+  words:["I","am","going","to","play","tennis","there","."]
+ },
+ {
+  jp:"彼は今家に帰らなければなりません。",
+  answer:"He has to go home now.",
+  words:["He","has","to","go","home","now","."]
+ },
+ {
+  jp:"私はそこで英語を使わなければなりません。",
+  answer:"I have to use English there.",
+  words:["I","have","to","use","English","there","."]
+ },
+ {
+  jp:"私たちは夕食の後に映画を見るつもりです。",
+  answer:"We are going to watch a movie after dinner.",
+  words:["We","are","going","to","watch","a","movie","after","dinner","."]
+ },
+ {
+  jp:"生徒たちは明日数学のテストを受けなければなりません。",
+  answer:"The students have to take a math test tomorrow.",
+  words:["The","students","have","to","take","a","math","test","tomorrow","."]
+ }
+];
+
+const quiz = document.getElementById("quiz");
+
+function shuffle(arr){
+  return [...arr].sort(()=>Math.random()-0.5);
+}
+
+function buildQuiz(){
+  quiz.innerHTML = "";
+
+  const questions = shuffle(
+    baseQuestions.map(q=>({
+      ...q,
+      words: shuffle([...q.words])
+    }))
+  );
+
+  questions.forEach((q,i)=>{
+    const div=document.createElement("div");
+    div.className="question";
+    div.dataset.answer=q.answer;
+
+    div.innerHTML=`
+      <div class="jp">Q${i+1}. ${q.jp}</div>
+      <div class="answer-area"></div>
+      <div class="word-bank"></div>
+      <div class="result"></div>
+      <button class="readBtn">🔊 この文を読む</button>
+    `;
+
+    quiz.appendChild(div);
+
+    const bank=div.querySelector(".word-bank");
+    const ans=div.querySelector(".answer-area");
+    const res=div.querySelector(".result");
+    const readBtn=div.querySelector(".readBtn");
+
+    q.words.forEach(w=>{
+      const s=document.createElement("span");
+      s.textContent=w;
+      s.onclick=()=>{
+        if(s.parentElement===bank){
+          ans.appendChild(s);
+        }else{
+          bank.appendChild(s);
+        }
+      };
+      bank.appendChild(s);
+    });
+
+    readBtn.onclick=()=>{
+      const u=new SpeechSynthesisUtterance(q.answer);
+      u.lang="en-US";
+      u.rate=0.8;
+      speechSynthesis.speak(u);
+    };
+  });
+}
+
+buildQuiz();
+
+document.getElementById("shuffleBtn").onclick = buildQuiz;
+
+document.getElementById("checkBtn").onclick=()=>{
+  let allCorrect=true;
+
+  document.querySelectorAll(".question").forEach(qDiv=>{
+    const ans=qDiv.querySelector(".answer-area");
+    const res=qDiv.querySelector(".result");
+    const readBtn=qDiv.querySelector(".readBtn");
+
+    let text=[...ans.children].map(s=>s.textContent).join(" ");
+    // ★ ピリオド前のスペースを削除
+    text = text.replace(" .",".");
+
+    if(text===qDiv.dataset.answer){
+      res.textContent="⭕ 正解！";
+      readBtn.style.display="inline-block";
+    }else{
+      res.textContent="❌ まちがい。ならべなおそう！";
+      allCorrect=false;
+    }
+  });
+
+  if(allCorrect){
+    startConfetti();
+    setTimeout(stopConfetti,5000);
+  }
+};
+
+/* 紙吹雪 */
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+let confetti=[],anim;
+
+function startConfetti(){
+  confetti=Array.from({length:200},()=>({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    r:Math.random()*6+4,
+    d:Math.random()*5+2
+  }));
+  anim=requestAnimationFrame(draw);
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  confetti.forEach(c=>{
+    ctx.beginPath();
+    ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+    ctx.fillStyle=`hsl(${Math.random()*360},100%,60%)`;
+    ctx.fill();
+    c.y+=c.d;
+    if(c.y>canvas.height) c.y=0;
+  });
+  anim=requestAnimationFrame(draw);
+}
+
+function stopConfetti(){
+  cancelAnimationFrame(anim);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>
